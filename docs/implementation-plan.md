@@ -137,8 +137,8 @@ Setiap tool mengimplementasikan protokol MCP resmi (nama, deskripsi, input schem
    - Menjalankan Playwright RPC interceptor untuk membedah dashboard live, mengekstrak struktur AST & BigQuery data source otomatis, dan menyimpan draf file `manifests/{id}.yaml`.
 3. **`get_dashboard_context` ([src/tools/getDashboardContext.ts](file:///Users/OUT2305/Repo/data-studio-mcp/src/tools/getDashboardContext.ts)):**
    - Mengembalikan seluruh konteks semantik dashboard: jumlah halaman, widget, formula kalkulasi, kolom tanggal, filter alias, dan style visual dari manifest YAML.
-4. **`query_dashboard_metric` ([src/tools/queryDashboardMetric.ts](file:///Users/OUT2305/Repo/data-studio-mcp/src/tools/queryDashboardMetric.ts)):**
-   - Mengambil template query SQL dari manifest widget, menyuntikkan parameter tanggal/filter, mengeksekusi ke BigQuery, dan mengembalikan data angka presisi tinggi (Zero Numerical Hallucination).
+4. **`get_widget_query` ([src/tools/getWidgetQuery.ts](file:///Users/OUT2305/Repo/data-studio-mcp/src/tools/getWidgetQuery.ts)):**
+   - Meracik query SQL analitik ground-truth untuk widget tertentu di dashboard berdasarkan definisi metrik, formula calculated fields (chart & data level), serta parameter filter/rentang tanggal yang siap dieksekusi oleh tool BigQuery MCP Anda (misal: `custom-bigquery-mcp.execute_query`). Menjaga arsitektur gateway tetap orthogonal dan bebas ambigu.
 5. **`generate_report_url` ([src/tools/generateReportUrl.ts](file:///Users/OUT2305/Repo/data-studio-mcp/src/tools/generateReportUrl.ts)):**
    - Membentuk URL Linking API resmi dengan parameter filter terstruktur (`?params={"<alias>":"<value>"}`) berbasis alias kontrol yang tersimpan di manifest.
 6. **`capture_dashboard_snapshot` ([src/tools/captureSnapshot.ts](file:///Users/OUT2305/Repo/data-studio-mcp/src/tools/captureSnapshot.ts)):**
