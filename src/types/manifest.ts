@@ -66,15 +66,56 @@ export const WidgetStyleSchema = z.object({
   show_title: z.boolean().optional()
 }).passthrough();
 
+/**
+ * Tipe komponen kanvas resmi Google Looker Studio:
+ * - Charts (Table, Scorecard, Time Series, Bars, Pies, Lines, Geo, Gauge, Treemap, dll.)
+ * - Controls (Dropdown, Fixed list, Input box, Slider, Checkbox, Date picker, Button, dll.)
+ * - Layout (Text box, Image, Shape, Embed URL)
+ */
 export const WidgetTypeEnum = z.enum([
+  // Charts & Visualizations
   'table',
+  'table_with_bars',
+  'table_with_heatmap',
+  'pivot_table',
   'scorecard',
-  'dropdown_filter',
-  'date_range_picker',
-  'text_box',
+  'scorecard_compact',
   'time_series',
+  'sparkline',
   'bar_chart',
+  'column_chart',
+  'stacked_bar_chart',
   'pie_chart',
+  'donut_chart',
+  'line_chart',
+  'area_chart',
+  'stacked_area_chart',
+  'scatter_chart',
+  'bubble_chart',
+  'geo_map',
+  'google_map',
+  'gauge',
+  'treemap',
+  'bullet_chart',
+
+  // Controls (Filter & Interactive)
+  'dropdown_filter',
+  'fixed_list_filter',
+  'input_box_filter',
+  'advanced_filter',
+  'slider_filter',
+  'checkbox_filter',
+  'date_range_picker',
+  'data_control',
+  'button',
+
+  // Layout & Static Elements
+  'text_box',
+  'image',
+  'shape',
+  'embed_url',
+
+  // Fallback
   'custom'
 ]);
 

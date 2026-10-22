@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ManifestService } from '../services/manifestService.js';
+import { validateReadOnlySql } from '../utils/sqlSanitizer.js';
 
 export const GetWidgetQueryInputSchema = z.object({
   dashboard_id: z.string().describe('ID dashboard Google Data Studio (contoh: "56f29b51-79b3-4ee6-a820-a1999e238ac5")'),
@@ -80,7 +81,10 @@ export function createGetWidgetQueryHandler(manifestService: ManifestService) {
       sql = sql.replace(/<DATASET>/g, dataset);
     }
 
-    // 4. Render respon berstandar gateway MCP
+    // 4. Validasi keamanan query (Read-Only Guardrail)
+    validateReadOnlySql(sql);
+
+    // 5. Render respon berstandar gateway MCP
     let markdown = `### 📝 Query SQL Ground-Truth: "${targetWidget.title}" (\`${targetWidget.widget_id}\`)\n\n`;
     markdown += `Query ini siap dieksekusi menggunakan tool BigQuery MCP Anda (misal: \`custom-bigquery-mcp.execute_query\`):\n\n`;
     markdown += `**Target Data Source:**\n`;

@@ -13,8 +13,12 @@ export class GoogleApiService {
   private driveClient: any = null;
   private manifestService: ManifestService;
 
-  constructor(manifestService: ManifestService) {
+  constructor(manifestService: ManifestService, driveClient?: any) {
     this.manifestService = manifestService;
+    if (driveClient !== undefined) {
+      this.driveClient = driveClient;
+      return;
+    }
     try {
       const auth = new google.auth.GoogleAuth({
         scopes: ['https://www.googleapis.com/auth/drive.readonly']

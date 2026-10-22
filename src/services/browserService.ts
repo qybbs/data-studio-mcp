@@ -11,26 +11,97 @@ export class BrowserService {
     this.authFile = authFile || path.resolve(process.cwd(), '.auth/storageState.json');
   }
 
+  /**
+   * Pemetaan komprehensif tipe komponen internal Google Looker Studio ke WidgetType standar.
+   * Mengacu pada:
+   * - https://docs.cloud.google.com/data-studio/types-of-charts
+   * - https://docs.cloud.google.com/data-studio/about-controls
+   */
   private mapComponentType(rawType: string): WidgetType {
-    switch (rawType) {
-      case 'simple-table':
-        return 'table';
-      case 'kpi-metric':
-        return 'scorecard';
-      case 'dimension-filter':
-        return 'dropdown_filter';
-      case 'simple-daterangepicker':
-        return 'date_range_picker';
-      case 'simple-description':
-        return 'text_box';
-      case 'time-series':
-        return 'time_series';
-      case 'bar-chart':
-        return 'bar_chart';
-      case 'pie-chart':
-        return 'pie_chart';
+    const t = rawType.toLowerCase().replace(/[_\s]+/g, '-');
+
+    // 1. Charts & Visualizations
+    if (t === 'simple-table' || t === 'table') return 'table';
+    if (t === 'pivot-table' || t === 'pivot') return 'pivot_table';
+    if (t === 'kpi-metric' || t === 'scorecard') return 'scorecard';
+    if (t === 'time-series' || t === 'sparkline') return 'time_series';
+    if (t.includes('bar') || t.includes('column')) return 'bar_chart';
+    if (t.includes('pie') || t.includes('donut')) return 'pie_chart';
+    if (t.includes('area')) return 'area_chart';
+    if (t.includes('line')) return 'line_chart';
+    if (t.includes('scatter') || t.includes('bubble')) return 'scatter_chart';
+    if (t.includes('google-map')) return 'google_map';
+    if (t.includes('geo')) return 'geo_map';
+    if (t.includes('gauge')) return 'gauge';
+    if (t.includes('treemap')) return 'treemap';
+    if (t.includes('bullet')) return 'bullet_chart';
+
+    // 2. Controls & Filter Interactivity
+    if (t === 'dimension-filter' || t.includes('dropdown')) return 'dropdown_filter';
+    if (t.includes('fixed-list') || t === 'list-filter') return 'fixed_list_filter';
+    if (t.includes('input-box') || t.includes('search-box')) return 'input_box_filter';
+    if (t.includes('advanced-filter')) return 'advanced_filter';
+    if (t.includes('slider')) return 'slider_filter';
+    if (t.includes('checkbox')) return 'checkbox_filter';
+    if (t === 'simple-daterangepicker' || t.includes('daterange')) return 'date_range_picker';
+    if (t.includes('data-control')) return 'data_control';
+    if (t.includes('button')) return 'button';
+
+    // 3. Layout & Static Elements
+    if (t === 'simple-description' || t.includes('text') || t.includes('description')) return 'text_box';
+    if (t.includes('image')) return 'image';
+    if (t.includes('shape') || t.includes('rect') || t.includes('circle')) return 'shape';
+    if (t.includes('embed')) return 'embed_url';
+
+    return 'custom';
+  }
+
+  /**
+   * Pemetaan kode agregasi internal Looker Studio ke standar SQL.
+   */
+  private mapAggregationType(aggCode?: number): string {
+    switch (aggCode) {
+      case 1:
+        return 'SUM';
+      case 2:
+        return 'AVG';
+      case 3:
+        return 'COUNT';
+      case 4:
+        return 'COUNT_DISTINCT';
+      case 5:
+        return 'MIN';
+      case 6:
+        return 'MAX';
+      case 7:
+        return 'COUNT'; // Record Count
       default:
-        return 'custom';
+        return 'SUM';
+    }
+  }
+
+  /**
+   * Pemetaan jenis konektor data Looker Studio (BigQuery, Sheets, PostgreSQL, dll.).
+   */
+  private mapConnectorType(connectorType?: number, connectorName?: string): string {
+    switch (connectorType) {
+      case 2:
+        return 'bigquery';
+      case 1:
+        return 'google_sheets';
+      case 3:
+        return 'mysql';
+      case 4:
+        return 'postgresql';
+      case 5:
+        return 'csv_upload';
+      case 6:
+        return 'google_analytics_4';
+      default:
+        if (connectorName) {
+          return connectorName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        }
+        return 'generic_datasource';
     }
   }
 
@@ -63,6 +134,7 @@ export class BrowserService {
       let getReportData: any = null;
       let getSchemaData: any = null;
       let batchedData: any = null;
+      let claimedDatasourcesData: any = null;
 
       page.on('response', async (response) => {
         const resUrl = response.url();
@@ -77,6 +149,12 @@ export class BrowserService {
             const raw = await response.text();
             getSchemaData = JSON.parse(raw.replace(/^\)\]\}'\s*/, ''));
             logger.info('RPC getSchema berhasil ditangkap.');
+          } catch {}
+        } else if (resUrl.includes('getClaimedDatasources')) {
+          try {
+            const raw = await response.text();
+            claimedDatasourcesData = JSON.parse(raw.replace(/^\)\]\}'\s*/, ''));
+            logger.info('RPC getClaimedDatasources berhasil ditangkap.');
           } catch {}
         } else if (resUrl.includes('batchedDataV2')) {
           try {
@@ -102,18 +180,27 @@ export class BrowserService {
       const dashboardId = shareable.id || 'unknown';
       const dashboardName = shareable.name || 'Untitled Report';
 
-      // 1. Ekstraksi BigQuery Data Source Metadata
-      let bqProject = 'unknown_project';
-      let bqRegion = 'asia-southeast2';
-      let bqDataset = 'default';
-      let bqTable = 'agent_events';
+      // 1. Ekstraksi Sumber Data & Konektor secara Dinamis (Bebas Hardcode)
+      const primaryClaimed = claimedDatasourcesData?.claimedDatasources?.[0]?.basicEntityInfo;
+      const dataSourceId: string | undefined = primaryClaimed?.id || reportConfig.report?.resource?.datasourceAlias?.[0]?.datasourceId;
+      const rawConnectorType = getSchemaData?.schema?.connectorType;
+      const connectorName = primaryClaimed?.name;
+      const dataSourceType = this.mapConnectorType(rawConnectorType, connectorName);
 
-      if (batchedData?.dataResponse?.[0]?.dataSubset?.[0]?.biJobUrl) {
-        const biJobUrl = batchedData.dataResponse[0].dataSubset[0].biJobUrl;
-        const projectMatch = biJobUrl.match(/project=([^&]+)/);
-        const regionMatch = biJobUrl.match(/j=bq:([^:]+):/);
-        if (projectMatch) bqProject = projectMatch[1];
-        if (regionMatch) bqRegion = regionMatch[1];
+      let bqProject: string | undefined = undefined;
+      let bqRegion: string | undefined = undefined;
+      let bqDataset: string | undefined = undefined;
+      let bqTable: string | undefined = primaryClaimed?.name || undefined;
+
+      // Ekstraksi metadata job BigQuery jika connector bertipe BigQuery dan biJobUrl tersedia
+      if (dataSourceType === 'bigquery') {
+        const biJobUrl = batchedData?.dataResponse?.[0]?.dataSubset?.[0]?.biJobUrl;
+        if (biJobUrl) {
+          const projectMatch = biJobUrl.match(/project=([^&]+)/);
+          const regionMatch = biJobUrl.match(/j=bq:([^:]+):/);
+          if (projectMatch) bqProject = projectMatch[1];
+          if (regionMatch) bqRegion = regionMatch[1];
+        }
       }
 
       // 2. Ekstraksi Skema Kolom dari getSchema
@@ -132,11 +219,13 @@ export class BrowserService {
           });
         });
         s.metrics?.forEach((m: any) => {
+          const aggType = this.mapAggregationType(m.defaultAggregation ?? m.newDefaultAggregation);
           metricsSchema.push({
             name: m.displayName || m.name,
             internal_field_id: m.name,
             type: 'INTEGER',
-            aggregation: 'COUNT'
+            aggregation: aggType,
+            formula: aggType === 'COUNT' ? 'COUNT(1)' : `${aggType}(${m.displayName || m.name})`
           });
         });
       }
@@ -167,12 +256,17 @@ export class BrowserService {
               const fieldName = dt?.displayName || tf.sourceFieldName;
               const isCalc = Boolean(tf.textFormula);
 
-              if (fieldName?.toLowerCase().includes('count') || cd.id?.includes('metric')) {
+              // Tentukan apakah metrik berdasarkan konfigurasi transformasi atau nama
+              const isMetric = cd.id?.includes('metric') ||
+                c.propertyConfig?.componentProperty?.metrics?.labeledConcepts?.[0]?.value?.conceptNames?.includes(cd.name);
+
+              if (isMetric) {
+                const agg = this.mapAggregationType(tf.transformationConfig?.aggregationType);
                 metrics.push({
                   field: fieldName,
                   internal_field_id: cd.id,
-                  aggregation: 'COUNT',
-                  formula: 'COUNT(1)'
+                  aggregation: agg,
+                  formula: tf.textFormula || (agg === 'COUNT' ? 'COUNT(1)' : `${agg}(${fieldName})`)
                 });
               } else {
                 dimensions.push({
@@ -193,7 +287,7 @@ export class BrowserService {
             title: c.propertyConfig?.componentProperty?.title || `${compType} widget`,
             type: compType,
             alias,
-            data_source_id: '843d3814-fda1-4bea-a94b-603fd3aa29af',
+            data_source_id: dataSourceId,
             data_source_name: bqTable,
             dimensions: dimensions.length > 0 ? dimensions : undefined,
             metrics: metrics.length > 0 ? metrics : undefined,
@@ -226,7 +320,7 @@ export class BrowserService {
           canvas_height: reportConfig.report?.attributeConfig?.reportAttribute?.height || 900
         },
         data_source: {
-          type: 'bigquery',
+          type: dataSourceType,
           project_id: bqProject,
           dataset: bqDataset,
           table_name: bqTable,
