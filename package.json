@@ -12,7 +12,8 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "spike": "tsx scripts/spike-inspect.ts",
-    "auth:login": "tsx scripts/auth-login.ts"
+    "auth:login": "tsx scripts/auth-login.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^7.9.2",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/node": "^20.17.19",
     "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.12"
   }
 }
