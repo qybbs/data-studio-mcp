@@ -1,0 +1,159 @@
+dashboard_id: "56f29b51-79b3-4ee6-a820-a1999e238ac5"
+name: "Untitled Report"
+url: "https://datastudio.google.com/reporting/56f29b51-79b3-4ee6-a820-a1999e238ac5"
+global_style:
+  theme: "t-default-modern"
+  canvas_width: 1220
+  canvas_height: 900
+
+data_source:
+  type: "bigquery"
+  project_id: "devfest-workshop-479805"
+  dataset: "analytics_mart" # atau dataset tempat tabel agent_events berada
+  table_name: "agent_events"
+  region: "asia-southeast2"
+  extracted_via: "playwright_rpc_inspector"
+  schema:
+    dimensions:
+      - name: "timestamp"
+        internal_field_id: "_timestamp_"
+        type: "TIMESTAMP"
+      - name: "event_type"
+        internal_field_id: "_event_type_"
+        type: "STRING"
+      - name: "agent"
+        internal_field_id: "_agent_"
+        type: "STRING"
+      - name: "session_id"
+        internal_field_id: "_session_id_"
+        type: "STRING"
+      - name: "invocation_id"
+        internal_field_id: "_invocation_id_"
+        type: "STRING"
+      - name: "user_id"
+        internal_field_id: "_user_id_"
+        type: "STRING"
+      - name: "content"
+        internal_field_id: "_content_"
+        type: "STRING"
+      - name: "error_message"
+        internal_field_id: "_error_message_"
+        type: "STRING"
+      - name: "event_status"
+        internal_field_id: "calc_j0l5kfel8d"
+        type: "STRING"
+        is_calculated_field: true
+        scope: "data_source"
+        sample_values: ["Success", "Error"]
+    metrics:
+      - name: "Record Count"
+        internal_field_id: "datastudio_record_count_system_field_id_98323387"
+        type: "INTEGER"
+        aggregation: "COUNT"
+
+pages:
+  - page_id: "85456419"
+    page_number: 1
+    title: "Untitled Page"
+    description: "Halaman utama pemantauan event agent"
+    
+    widgets:
+      # WIDGET 1: JUDUL DASHBOARD (TEXT BOX)
+      - widget_id: "cd-ni2ByeiRagw"
+        title: "Add report title"
+        type: "text_box"
+        style:
+          position: { x: 16, y: 0, width: 875, height: 30 }
+          font_size: 24
+
+      # WIDGET 2: DATE RANGE PICKER
+      - widget_id: "cd-g6C4Fs5TfCE"
+        title: "Pilih rentang tanggal"
+        type: "date_range_picker"
+        style:
+          position: { x: 907, y: 0, width: 281, height: 40 }
+
+      # WIDGET 3: SCORECARD (KPI METRIC)
+      - widget_id: "cd-kcg72eel8d"
+        title: "Record Count Scorecard"
+        type: "scorecard"
+        data_source_id: "843d3814-fda1-4bea-a94b-603fd3aa29af"
+        data_source_name: "agent_events"
+        metrics:
+          - field: "Record Count"
+            internal_field_id: "datastudio_record_count_system_field_id_98323387"
+            aggregation: "COUNT"
+            formula: "COUNT(1)"
+        style:
+          position: { x: 16, y: 0, width: 182, height: 80 }
+
+      # WIDGET 4: DROPDOWN FILTER (KONTROL)
+      - widget_id: "cd-et30peel8d"
+        title: "Filter Event Type"
+        type: "dropdown_filter"
+        alias: "df5" # URL parameter alias untuk Linking API (?params={"df5":"LLM_RESPONSE"})
+        data_source_id: "843d3814-fda1-4bea-a94b-603fd3aa29af"
+        data_source_name: "agent_events"
+        dimension:
+          field: "event_type"
+          internal_field_id: "_event_type_"
+        metric:
+          field: "Record Count"
+          internal_field_id: "datastudio_record_count_system_field_id_98323387"
+        style:
+          position: { x: 808, y: 0, width: 380, height: 40 }
+
+      # WIDGET 5: TABEL EVENT AGENT
+      - widget_id: "cd-bya47jdl8d"
+        title: "Untitled Report Tabel"
+        type: "table"
+        data_source_id: "843d3814-fda1-4bea-a94b-603fd3aa29af"
+        data_source_name: "agent_events"
+        
+        # SETUP DATA
+        date_range_field: "timestamp"
+        default_date_range: "Auto"
+        dimensions:
+          - field: "event_type"
+            internal_field_id: "_event_type_"
+            data_type: "Text"
+          - field: "event_status"
+            internal_field_id: "calc_j0l5kfel8d"
+            data_type: "Text"
+            is_calculated_field: true
+            scope: "data_source"
+          - field: "upper_event_type"
+            internal_field_id: "qt_x31tpgel8d"
+            data_type: "Text"
+            is_calculated_field: true
+            scope: "chart"
+            formula: "UPPER(event_type)"
+            internal_formula: "UPPER(t0._event_type_)"
+        metrics:
+          - field: "Record Count"
+            internal_field_id: "datastudio_record_count_system_field_id_98323387"
+            aggregation: "COUNT"
+            formula: "COUNT(1)"
+            display_format: "Integer"
+        sort:
+          field: "Record Count"
+          order: "DESC"
+        limit: 100
+        sql_query: |
+          SELECT 
+            event_type,
+            CASE WHEN event_type = 'TOOL_ERROR' THEN 'Error' ELSE 'Success' END AS event_status,
+            UPPER(event_type) AS upper_event_type,
+            COUNT(1) AS record_count
+          FROM `devfest-workshop-479805.<DATASET>.agent_events`
+          WHERE (@start_date IS NULL OR DATE(timestamp) BETWEEN @start_date AND @end_date)
+            AND (@df5 IS NULL OR event_type = @df5)
+          GROUP BY 1, 2, 3
+          ORDER BY 4 DESC
+          LIMIT 100
+
+        # SETUP STYLE
+        style:
+          position: { x: 16, y: 0, width: 776, height: 280 }
+          footer_border_color: "#eee"
+          show_title: true

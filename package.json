@@ -1,0 +1,31 @@
+{
+  "name": "data-studio-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for Google Data Studio dashboards",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "data-studio-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "spike": "tsx scripts/spike-inspect.ts",
+    "auth:login": "tsx scripts/auth-login.ts"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.9.2",
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "dotenv": "^16.4.7",
+    "googleapis": "^144.0.0",
+    "playwright": "^1.50.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

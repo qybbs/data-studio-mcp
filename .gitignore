@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.auth/
+*.storageState.json
+storageState.json
+screenshots/
+*.png
+*.webp
+.DS_Store
