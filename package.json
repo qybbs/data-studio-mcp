@@ -16,7 +16,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@google-cloud/bigquery": "^7.9.2",
     "@modelcontextprotocol/sdk": "^1.6.1",
     "dotenv": "^16.4.7",
     "googleapis": "^144.0.0",

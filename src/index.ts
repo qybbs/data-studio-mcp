@@ -10,14 +10,13 @@ import {
 
 import { logger } from './utils/logger.js';
 import { ManifestService } from './services/manifestService.js';
-import { BigQueryService } from './services/bigqueryService.js';
 import { BrowserService } from './services/browserService.js';
 import { GoogleApiService } from './services/googleApiService.js';
 
 import { createSearchReportsHandler } from './tools/searchReports.js';
 import { createInspectDashboardHandler } from './tools/inspectDashboard.js';
 import { createGetDashboardContextHandler } from './tools/getDashboardContext.js';
-import { createQueryDashboardMetricHandler } from './tools/queryDashboardMetric.js';
+import { createGetWidgetQueryHandler } from './tools/getWidgetQuery.js';
 import { createGenerateReportUrlHandler } from './tools/generateReportUrl.js';
 import { createCaptureSnapshotHandler } from './tools/captureSnapshot.js';
 
@@ -26,7 +25,6 @@ async function main() {
 
   // Inisialisasi Service Layer
   const manifestService = new ManifestService();
-  const bigqueryService = new BigQueryService();
   const browserService = new BrowserService();
   const googleApiService = new GoogleApiService(manifestService);
 
@@ -34,7 +32,7 @@ async function main() {
   const searchReportsHandler = createSearchReportsHandler(googleApiService);
   const inspectDashboardHandler = createInspectDashboardHandler(browserService, manifestService);
   const getDashboardContextHandler = createGetDashboardContextHandler(manifestService);
-  const queryDashboardMetricHandler = createQueryDashboardMetricHandler(manifestService, bigqueryService);
+  const getWidgetQueryHandler = createGetWidgetQueryHandler(manifestService);
   const generateReportUrlHandler = createGenerateReportUrlHandler(manifestService);
   const captureSnapshotHandler = createCaptureSnapshotHandler(browserService, manifestService);
 
@@ -51,7 +49,7 @@ async function main() {
     }
   );
 
-  // Daftar 6 Tools MCP dengan format JSON Schema lengkap
+  // Daftar 6 Tools MCP dengan pemisahan peran yang orthogonal dan bebas ambigu
   const tools: Tool[] = [
     {
       name: 'search_reports',
@@ -107,18 +105,18 @@ async function main() {
       }
     },
     {
-      name: 'query_dashboard_metric',
-      description: 'Mengeksekusi query SQL analitik langsung ke database BigQuery secara read-only berdasarkan definisi widget dashboard. Menjamin nol halusinasi numerik dengan respon ganda (tabel Markdown + JSON data).',
+      name: 'get_widget_query',
+      description: 'Meracik query SQL analitik ground-truth untuk widget tertentu di dashboard berdasarkan definisi metrik, formula calculated fields (chart & data level), serta parameter filter/rentang tanggal yang siap dieksekusi oleh tool BigQuery MCP Anda (misal: custom-bigquery-mcp.execute_query).',
       inputSchema: {
         type: 'object',
         properties: {
           dashboard_id: {
             type: 'string',
-            description: 'ID dashboard Google Data Studio'
+            description: 'ID dashboard Google Data Studio (contoh: "56f29b51-79b3-4ee6-a820-a1999e238ac5")'
           },
           widget_id: {
             type: 'string',
-            description: 'ID widget target (contoh: "cd-bya47jdl8d")'
+            description: 'ID widget target (contoh: "cd-bya47jdl8d" atau "cd-kcg72eel8d")'
           },
           start_date: {
             type: 'string',
@@ -130,11 +128,11 @@ async function main() {
           },
           filter_params: {
             type: 'object',
-            description: 'Parameter filter kontrol tambahan (contoh: {"df5": "TOOL_ERROR"} atau {"event_type": "LLM_RESPONSE"})'
+            description: 'Parameter filter kontrol tambahan (contoh: {"event_type": "TOOL_ERROR"} atau {"df5": "TOOL_ERROR"})'
           },
-          max_rows: {
-            type: 'number',
-            description: 'Batas maksimum baris data yang diambil (default: 100, max: 1000)'
+          dataset_override: {
+            type: 'string',
+            description: 'Nama dataset BigQuery jika ingin menggantikan placeholder <DATASET> (opsional)'
           }
         },
         required: ['dashboard_id', 'widget_id']
@@ -211,8 +209,8 @@ async function main() {
           return await inspectDashboardHandler(args as any);
         case 'get_dashboard_context':
           return await getDashboardContextHandler(args as any);
-        case 'query_dashboard_metric':
-          return await queryDashboardMetricHandler(args as any);
+        case 'get_widget_query':
+          return await getWidgetQueryHandler(args as any);
         case 'generate_report_url':
           return await generateReportUrlHandler(args as any);
         case 'capture_dashboard_snapshot':
