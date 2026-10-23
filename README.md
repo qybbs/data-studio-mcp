@@ -32,53 +32,54 @@ Server ini bertindak sebagai **Semantic & BI Presentation Layer**, memungkinkan 
 
 ## 🚀 Memulai (Quick Start)
 
-### 1. Instalasi Dependensi & Build
+### Opsi 1: Penggunaan Langsung Tanpa Clone (via npx / GitHub)
+
+#### 1. Login Sesi Google (Cukup Sekali di Terminal)
 ```bash
-npm install
-npm run build
+npx -y github:qybbs/data-studio-mcp login
 ```
+*Jendela browser Google Chrome resmi akan terbuka. Silakan login ke akun Google yang memiliki hak akses ke dashboard Looker Studio Anda, lalu tekan **[ENTER]** di terminal. Sesi akan otomatis tersimpan di `~/.data-studio-mcp/storageState.json`.*
 
-### 2. Autentikasi Google (Sesi Browser Headless)
-Sebelum menjalankan crawler live untuk pertama kali, simpan sesi login Google Anda:
-```bash
-npm run auth:login
-```
-*Jendela browser Chrome akan terbuka. Masuk dengan akun Google Anda yang memiliki akses ke dashboard Looker Studio, lalu tekan Enter di terminal. Sesi akan tersimpan aman di `.auth/storageState.json` (terlindungi oleh `.gitignore`).*
-
-### 3. Pengujian Unit
-```bash
-npm test
-```
-
----
-
-## 🔌 Konfigurasi Integrasi MCP
-
-### Opsi A: Mendaftarkan ke `saas-to-mcp-gateway`
-Tambahkan konfigurasi berikut ke file konfigurasi gateway Anda (`gateway-mcp-config.json`):
-
+#### 2. Konfigurasi Gateway (`gateway-mcp-config.json`)
+Daftarkan berdampingan dengan `custom-bigquery-mcp`:
 ```json
 {
   "mcpServers": {
+    "custom-bigquery-mcp": {
+      "command": "npx",
+      "args": ["-y", "github:qybbs/custom-bigquery-mcp"]
+    },
     "data-studio-mcp": {
-      "command": "node",
-      "args": ["/Users/OUT2305/Repo/data-studio-mcp/dist/index.js"],
-      "env": {}
+      "command": "npx",
+      "args": ["-y", "github:qybbs/data-studio-mcp"]
     }
   }
 }
 ```
 
-### Opsi B: Claude Desktop (`claude_desktop_config.json`)
+#### 3. Konfigurasi Claude Desktop (`claude_desktop_config.json`)
 ```json
 {
   "mcpServers": {
     "looker-studio": {
-      "command": "node",
-      "args": ["/Users/OUT2305/Repo/data-studio-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "github:qybbs/data-studio-mcp"]
     }
   }
 }
+```
+
+---
+
+### Opsi 2: Pengembangan Lokal (Clone Repository)
+
+```bash
+git clone https://github.com/qybbs/data-studio-mcp.git
+cd data-studio-mcp
+npm install
+npm run auth:login
+npm test
+npm run build
 ```
 
 ---

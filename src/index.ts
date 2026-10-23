@@ -19,8 +19,27 @@ import { createGetDashboardContextHandler } from './tools/getDashboardContext.js
 import { createGetWidgetQueryHandler } from './tools/getWidgetQuery.js';
 import { createGenerateReportUrlHandler } from './tools/generateReportUrl.js';
 import { createCaptureSnapshotHandler } from './tools/captureSnapshot.js';
+import { runLoginFlow } from './cli/login.js';
 
 async function main() {
+  if (process.argv.includes('login') || process.argv.includes('--login')) {
+    const customPath = process.argv[3] && !process.argv[3].startsWith('-') ? process.argv[3] : undefined;
+    await runLoginFlow(customPath);
+    process.exit(0);
+  }
+
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    console.error(`
+Data Studio MCP Server
+
+Penggunaan:
+  npx -y github:qybbs/data-studio-mcp         Menjalankan server MCP via stdio transport (default)
+  npx -y github:qybbs/data-studio-mcp login   Membuka browser Google Chrome untuk login dan menyimpan sesi
+  npx -y github:qybbs/data-studio-mcp --help  Menampilkan bantuan ini
+`);
+    process.exit(0);
+  }
+
   logger.info('Menginisialisasi Data Studio MCP Server (v0.1.0)...');
 
   // Inisialisasi Service Layer

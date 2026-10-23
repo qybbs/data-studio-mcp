@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { DashboardManifest, Page, Widget, WidgetType } from '../types/manifest.js';
 import { logger } from '../utils/logger.js';
+import { getDefaultAuthPath } from '../utils/paths.js';
 
 export class BrowserService {
   private authFile: string;
 
   constructor(authFile?: string) {
-    this.authFile = authFile || process.env.DATA_STUDIO_AUTH_FILE || path.resolve(process.cwd(), '.auth/storageState.json');
+    this.authFile = authFile || getDefaultAuthPath();
   }
 
   /**

@@ -3,12 +3,13 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { DashboardManifest, DashboardManifestSchema } from '../types/manifest.js';
 import { logger } from '../utils/logger.js';
+import { getDefaultManifestsDir } from '../utils/paths.js';
 
 export class ManifestService {
   private manifestsDir: string;
 
   constructor(manifestsDir?: string) {
-    this.manifestsDir = manifestsDir || path.resolve(process.cwd(), 'manifests');
+    this.manifestsDir = manifestsDir || getDefaultManifestsDir();
     if (!fs.existsSync(this.manifestsDir)) {
       fs.mkdirSync(this.manifestsDir, { recursive: true });
     }
