@@ -42,14 +42,25 @@ export async function runLoginFlow(customPath?: string): Promise<void> {
   console.error('\n⏳ Menunggu Anda menyelesaikan login di browser...');
   console.error('💡 Setelah berhasil masuk ke halaman beranda Looker Studio / Data Studio, tekan [ENTER] di terminal ini.\n');
 
+  let detected = false;
   const autoDetectPromise = new Promise<void>((resolve) => {
     page.on('framenavigated', (frame) => {
-      if (frame === page.mainFrame()) {
-        const url = frame.url();
-        if (url.includes('datastudio.google.com/navigation') || url.includes('lookerstudio.google.com/navigation')) {
-          console.error(`\n🎉 Terdeteksi: Berhasil masuk ke Data Studio Console!`);
-          resolve();
-        }
+      if (frame === page.mainFrame() && !detected) {
+        try {
+          const parsed = new URL(frame.url());
+          const isLookerStudio = parsed.hostname === 'lookerstudio.google.com' || parsed.hostname === 'datastudio.google.com';
+          const isNotAccounts = !parsed.hostname.includes('accounts.google.com');
+
+          if (isLookerStudio && isNotAccounts && (parsed.pathname.includes('/navigation') || parsed.pathname.includes('/reporting'))) {
+            detected = true;
+            console.error(`\n🎉 Terdeteksi: Berhasil masuk ke konsol Looker Studio (${parsed.origin})!`);
+            console.error('⏳ Menyimpan sesi dalam 3 detik (atau tekan [ENTER] untuk langsung simpan)...');
+            setTimeout(() => {
+              rl.close();
+              resolve();
+            }, 3000);
+          }
+        } catch {}
       }
     });
   });
@@ -61,9 +72,28 @@ export async function runLoginFlow(customPath?: string): Promise<void> {
     });
   });
 
-  await Promise.race([autoDetectPromise, enterPromise]);
+  // Jika user menutup browser secara manual setelah login
+  const pageClosePromise = new Promise<void>((resolve) => {
+    page.on('close', () => {
+      rl.close();
+      resolve();
+    });
+  });
 
-  await page.waitForTimeout(2000);
+  await Promise.race([autoDetectPromise, enterPromise, pageClosePromise]);
+
+  // Berikan waktu jeda 1 detik agar state cookies tersimpan sempurna
+  await page.waitForTimeout(1000).catch(() => {});
+
+  const cookies = await context.cookies().catch(() => []);
+  const hasAuthCookies = cookies.some(c =>
+    c.domain.includes('google.com') && ['SID', 'HSID', 'SSID', 'SAPISID', 'OSID', '__Secure-1PSID'].includes(c.name)
+  );
+
+  if (!hasAuthCookies) {
+    console.error('\n⚠️ PERINGATAN: Cookie autentikasi Google tidak terdeteksi!');
+    console.error('👉 Pastikan Anda telah menyelesaikan proses login email/password & 2FA sebelum menutup browser.');
+  }
 
   console.error('\n💾 Menyimpan session state (cookies)...');
   await context.storageState({ path: storageStatePath });
@@ -71,5 +101,5 @@ export async function runLoginFlow(customPath?: string): Promise<void> {
   console.error(`✅ Sesi login berhasil disimpan di: ${storageStatePath}`);
   console.error('🔒 Anda sekarang dapat menjalankan MCP server tanpa perlu login kembali.');
 
-  await context.close();
+  await context.close().catch(() => {});
 }
