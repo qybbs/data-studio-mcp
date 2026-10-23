@@ -8,7 +8,7 @@ export class BrowserService {
   private authFile: string;
 
   constructor(authFile?: string) {
-    this.authFile = authFile || path.resolve(process.cwd(), '.auth/storageState.json');
+    this.authFile = authFile || process.env.DATA_STUDIO_AUTH_FILE || path.resolve(process.cwd(), '.auth/storageState.json');
   }
 
   /**
@@ -172,7 +172,24 @@ export class BrowserService {
       await page.waitForTimeout(3000);
 
       if (!getReportData || !getReportData.reportConfig) {
-        throw new Error('Gagal menangkap payload getReport dari Google Looker Studio.');
+        const currentUrl = page.url();
+        if (currentUrl.includes('accounts.google.com') || currentUrl.includes('ServiceLogin')) {
+          throw new Error(
+            `Sesi login Google tidak valid atau belum terautentikasi (browser dialihkan ke: ${currentUrl}). ` +
+            `Silakan jalankan 'npm run auth:login' di terminal untuk menyegarkan sesi browser akun Anda.`
+          );
+        }
+        const pageTitle = await page.title().catch(() => '');
+        if (pageTitle.toLowerCase().includes('request access') || pageTitle.toLowerCase().includes('permission') || pageTitle.toLowerCase().includes('tidak ada akses')) {
+          throw new Error(
+            `Akun Google yang aktif tidak memiliki izin akses ke dashboard ini (Judul halaman: "${pageTitle}"). ` +
+            `Pastikan akun yang digunakan memiliki hak akses atau jalankan 'npm run auth:login' dengan akun yang berwenang.`
+          );
+        }
+        throw new Error(
+          `Gagal menangkap payload getReport dari Google Looker Studio (URL saat ini: ${currentUrl}). ` +
+          `Pastikan URL dashboard valid dan dapat diakses oleh akun Google Anda.`
+        );
       }
 
       const reportConfig = getReportData.reportConfig;

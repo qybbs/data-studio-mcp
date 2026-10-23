@@ -8,11 +8,13 @@ const LOGIN_URL = 'https://accounts.google.com/ServiceLogin?service=analytics&co
 
 async function authLogin() {
   const authDir = path.resolve('.auth');
+  const targetArg = process.argv[2] || process.env.DATA_STUDIO_AUTH_FILE;
+  const storageStatePath = targetArg ? path.resolve(targetArg) : path.join(authDir, 'storageState.json');
   const userDataDir = path.join(authDir, 'user_data');
-  const storageStatePath = path.join(authDir, 'storageState.json');
 
-  if (!fs.existsSync(authDir)) {
-    fs.mkdirSync(authDir, { recursive: true });
+  const targetDir = path.dirname(storageStatePath);
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
   console.error('\n🚀 [AUTH LOGIN] Membuka Google Chrome Asli (Bypass Deteksi Otomasi)...');
