@@ -24,19 +24,12 @@ export function getDefaultAuthPath(): string {
     return path.resolve(process.env.DATA_STUDIO_AUTH_FILE);
   }
 
-  // 1. Cek direktori global user (~/.data-studio-mcp/storageState.json)
-  const globalAuth = path.join(getGlobalConfigDir(), 'storageState.json');
-  if (fs.existsSync(globalAuth)) {
-    return globalAuth;
-  }
-
-  // 2. Cek lokal repository (.auth/storageState.json)
   const localAuth = path.resolve(process.cwd(), '.auth/storageState.json');
   if (fs.existsSync(localAuth)) {
     return localAuth;
   }
 
-  return globalAuth;
+  return path.join(getGlobalConfigDir(), 'storageState.json');
 }
 
 /**
